@@ -50,7 +50,7 @@ func _ready() -> void:
 	_player.name = "MusicPlayer"
 	_player.finished.connect(_on_player_finished)
 	add_child(_player)
-	set_process(true)
+	set_process(false)
 
 func configure_music(config: Dictionary) -> void:
 	_music_config = DEFAULT_MUSIC_CONFIG.duplicate(true)
@@ -65,6 +65,8 @@ func configure_music(config: Dictionary) -> void:
 	_apply_volume(true)
 	if bool(_music_config.get("autoplay", true)):
 		_restart_music()
+	else:
+		_refresh_music_process_state()
 
 func get_music_volume_percent() -> float:
 	return _music_volume_percent
@@ -85,6 +87,7 @@ func stop_music() -> void:
 	_is_fading_out = false
 	if _player:
 		_player.stop()
+	_refresh_music_process_state()
 
 func _process(_delta: float) -> void:
 	if not _configured or _player == null or _player.stream == null or not _player.playing or _is_fading_out:
@@ -99,6 +102,12 @@ func _process(_delta: float) -> void:
 	var fade_start: float = maxf(stream_length - fade_out_duration, start_offset)
 	if _player.get_playback_position() >= fade_start:
 		_fade_out_and_advance()
+
+func _refresh_music_process_state() -> void:
+	var should_process: bool = false
+	if _configured and _player != null and _player.stream != null and _player.playing and not _is_fading_out:
+		should_process = float(_music_config.get("fade_out_duration_seconds", 0.0)) > 0.0
+	set_process(should_process)
 
 func _resolve_tracks() -> void:
 	_tracks.clear()
@@ -188,6 +197,7 @@ func _restart_music() -> void:
 	var start_offset: float = _get_current_track_start_offset()
 	_player.play(start_offset)
 	_fade_in_to_target_volume()
+	_refresh_music_process_state()
 
 func _fade_in_to_target_volume() -> void:
 	if _player == null:
@@ -211,6 +221,7 @@ func _fade_out_and_advance() -> void:
 		_advance_and_play()
 		return
 	_is_fading_out = true
+	_refresh_music_process_state()
 	if _fade_tween != null:
 		_fade_tween.kill()
 		_fade_tween = null
@@ -234,6 +245,8 @@ func _on_player_finished() -> void:
 		return
 	if bool(_music_config.get("autoplay", true)):
 		_advance_and_play()
+	else:
+		_refresh_music_process_state()
 
 func _load_settings() -> void:
 	var settings_path: String = str(_music_config.get("settings_path", "")).strip_edges()
