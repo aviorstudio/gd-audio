@@ -1,6 +1,6 @@
 extends SceneTree
 
-const GdAudioAutoload = preload("res://autoload.gd")
+const GdAudioAutoload = preload("res://addon/autoload.gd")
 
 func _init() -> void:
 	var audio := GdAudioAutoload.new()
