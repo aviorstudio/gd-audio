@@ -8,7 +8,7 @@ Game-agnostic audio helpers for Godot 4 projects.
 `gdpm install @aviorstudio/gd-audio`
 
 ### Manual
-Copy this directory into `addons/@aviorstudio_gd-audio/` and enable the plugin.
+Copy `addon/` into `addons/@aviorstudio_gd-audio/` and enable the plugin.
 
 ## Usage
 
