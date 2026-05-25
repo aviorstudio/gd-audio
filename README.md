@@ -5,7 +5,7 @@ Game-agnostic audio helpers for Godot 4 projects.
 ## Installation
 
 ### Via gdpm
-`gdpm add @aviorstudio/gd-audio`
+`gdpm install @aviorstudio/gd-audio`
 
 ### Manual
 Copy this directory into `addons/@aviorstudio_gd-audio/` and enable the plugin.
@@ -63,7 +63,7 @@ GdAudio.play_sfx("click")
 ```
 
 - `configure_sfx(config: Dictionary)` — `samples` accepts either a path string or `{path, volume_db}` per name. Reconfiguring rebuilds the pool and sample registry.
-- `play_sfx(name: String)` — round-robins across a pool of `AudioStreamPlayer` nodes; ignores unknown sample names. Final volume is per-sample `volume_db` plus a master scalar derived from the persisted volume percent.
+- `play_sfx(name: String) -> bool` — round-robins across a pool of `AudioStreamPlayer` nodes; returns `false` for unknown sample names or unconfigured playback. Final volume is per-sample `volume_db` plus a master scalar derived from the persisted volume percent.
 - `get_sfx_volume_percent() -> float`
 - `set_sfx_volume_percent(value: float)`
 - signal `sfx_volume_changed(volume_percent: float)`
@@ -72,3 +72,21 @@ GdAudio.play_sfx("click")
 
 - In scope: generic looping music playback, configurable start offsets, fade in/out, persisted volume, pooled SFX one-shots with per-sample volume offsets and persisted master volume.
 - Out of scope: game-specific asset selection, route policy, or UI composition.
+
+## Compatibility
+
+- Godot 4.x.
+- Native and web exports, subject to Godot audio format support.
+- No project settings are required beyond enabling the plugin autoload.
+
+## API Stability
+
+The stable public API is the `GdAudio` autoload plus the configuration dictionaries documented above. Game-specific music selection, SFX naming, and settings UI should live in game code.
+
+## Testing
+
+`./tests/test.sh`
+
+## License
+
+MIT
