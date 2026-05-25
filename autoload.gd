@@ -282,18 +282,19 @@ func configure_sfx(config: Dictionary) -> void:
 	_sfx_rebuild_pool()
 	_sfx_load_samples()
 
-func play_sfx(sample_name: String) -> void:
+func play_sfx(sample_name: String) -> bool:
 	if not _sfx_configured:
-		return
+		return false
 	if not _sfx_streams.has(sample_name):
-		return
+		return false
 	var player: AudioStreamPlayer = _sfx_take_player()
 	if player == null:
-		return
+		return false
 	player.stream = _sfx_streams[sample_name]
 	var sample_db: float = float(_sfx_volumes_db.get(sample_name, _sfx_config.get("default_volume_db", 0.0)))
 	player.volume_db = sample_db + _sfx_percent_to_db_offset(_sfx_volume_percent)
 	player.play()
+	return true
 
 func get_sfx_volume_percent() -> float:
 	return _sfx_volume_percent
