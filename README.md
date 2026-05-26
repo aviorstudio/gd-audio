@@ -6,9 +6,9 @@ Use this addon when you want one simple `GdAudio` autoload for common game audio
 
 ## Installation
 
-### Via gdpm
+### Via gdam
 
-`gdpm install @aviorstudio/gd-audio`
+`gdam install @aviorstudio/gd-audio`
 
 ### Manual
 
