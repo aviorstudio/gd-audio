@@ -72,9 +72,28 @@ GdAudio.play_sfx("click")
 - No project settings are required beyond enabling the plugin autoload.
 - Keep game-specific music selection and settings UI in your game code.
 
+## Repository Layout
+
+- `addon/`: Godot plugin source packaged for GDAM and manual installation.
+- `addon/plugin.cfg`: plugin name, version, description, and entry script.
+- `addon/src/`: reusable GDScript modules.
+- `tests/`: Godot test project/scripts for addon behavior.
+- `.github/workflows/ci.yml`: validates package shape and runs tests.
+- `.github/workflows/release.yml`: creates GitHub release ZIPs and publishes to GDAM.
+
+## Versioning And Releases
+
+The version in `addon/plugin.cfg` is the addon package version. Releases are created from `main` with the manual release workflow and plain semver tags like `v0.0.1`; the workflow verifies `plugin.cfg`, builds `@aviorstudio_gd-audio.zip`, and publishes `@aviorstudio/gd-audio` to GDAM.
+
 ## Testing
 
-`./tests/test.sh`
+Run locally with:
+
+```sh
+./tests/test.sh
+```
+
+CI runs the same test script when available.
 
 ## License
 
