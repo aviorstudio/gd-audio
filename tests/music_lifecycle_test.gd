@@ -21,15 +21,7 @@ func _run() -> void:
 	_assert(_failure_paths == [missing_path], "failed load should identify its configured path once")
 	_assert(not audio._player.playing, "failed load must remain stopped")
 
-	var stream_path := "user://gd_audio_music_lifecycle_test.tres"
-	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = 8000
-	stream.data = PackedByteArray()
-	stream.data.resize(32000)
-	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = 16000
-	_assert(ResourceSaver.save(stream, stream_path) == OK, "audio fixture should save")
+	var stream_path := "res://tests/fixtures/test_stream.tres"
 	_assert(audio.configure_music({
 		"settings_path": "",
 		"stream_path": stream_path,
@@ -75,7 +67,10 @@ func _run() -> void:
 	_assert(audio.configure_music({"settings_path": "", "stream_path": stream_path, "autoplay": false}), "reconfigure should remain ready")
 	_assert(not audio._player.playing, "reconfigure with autoplay=false should stop prior playback")
 	_assert(not audio._music_active, "reconfigure with autoplay=false should clear prior playback intent")
+	audio._player.stream = null
 	audio.queue_free()
+	await process_frame
+	audio = null
 	await process_frame
 
 	print("ASSERTIONS gd-audio music_lifecycle_test %d" % _assertion_count)
