@@ -1,0 +1,5 @@
+autoload.gd
+autoload.gd.uid
+plugin.cfg
+plugin.gd
+plugin.gd.uid

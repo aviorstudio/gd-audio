@@ -7,27 +7,23 @@ on:
         description: Version bump
         required: true
         type: choice
-        options:
-          - patch
-          - minor
-          - major
-
-permissions:
-  contents: write
+        options: [patch, minor, major]
 
 concurrency: release-${{ github.repository }}
 
 jobs:
-  release:
+  test-package:
     runs-on: ubuntu-latest
-    # Bounded, so a step that hangs fails here rather than sitting until the
-    # runner's own timeout hours later.
     timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-
       - name: Determine release version
         id: release
         env:
@@ -60,46 +56,54 @@ jobs:
           plugin_version="$(sed -n -E 's/^version="([^"]+)"/\1/p' addon/plugin.cfg | head -n 1)"
           if [ "$plugin_version" != "$version" ]; then
             echo "addon/plugin.cfg version is $plugin_version, but the next $BUMP release is $version." >&2
-            echo "Update addon/plugin.cfg to version=\"$version\", commit it, then rerun this workflow." >&2
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
-      # The same checks CI runs, from the same definition. This workflow used
-      # to package and publish without running any of them -- the only thing
-      # between a broken commit and the GDAM registry was whether somebody had
-      # looked at CI. Running them here against this exact commit is the point:
-      # CI passing on this SHA earlier is a claim about that run.
-      - name: Test
+      - name: Test exact release commit and assemble once
         uses: ./.github/actions/test
+      - name: Retain immutable publication input
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gd-audio-release-${{ github.sha }}
+          path: |
+            dist/@aviorstudio_gd-audio.zip
+            dist/package.sha256
+            dist/package-evidence.txt
+          if-no-files-found: error
 
-      - name: Package addon
+  publish:
+    needs: test-package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested package bytes
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: gd-audio-release-${{ github.sha }}
+          path: dist
+      - name: Verify transferred bytes
         run: |
           set -euo pipefail
-          test -f addon/plugin.cfg
-          repo_owner="${GITHUB_REPOSITORY%%/*}"
-          addon_dir="@${repo_owner}_${GITHUB_REPOSITORY#*/}"
-          package_root="dist/${addon_dir}"
-          mkdir -p "$package_root"
-          cp addon/plugin.cfg addon/plugin.gd "$package_root/"
-          cp addon/*.uid "$package_root/" 2>/dev/null || true
-          if [ -f addon/autoload.gd ]; then cp addon/autoload.gd "$package_root/"; fi
-          if [ -d addon/src ]; then cp -R addon/src "$package_root/"; fi
-          (cd "$package_root" && zip -r "../${addon_dir}.zip" .)
-
-      - name: Create GitHub Release
+          (cd dist && sha256sum --check --strict package.sha256)
+          test "$(unzip -Z1 'dist/@aviorstudio_gd-audio.zip' | wc -l)" -eq 5
+      - name: Create GitHub Release from tested bytes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.release.outputs.tag }}
-        run: gh release create "$TAG" dist/*.zip --target "$GITHUB_SHA" --title "$TAG" --notes "Release $TAG"
-
-      - name: Install GDAM
-        uses: aviorstudio/gdam-actions/install@v0.0.2
-
-      - name: Publish to GDAM
-        uses: aviorstudio/gdam-actions/publish@v0.0.2
+          TAG: ${{ needs.test-package.outputs.tag }}
+        run: >-
+          gh release create "$TAG" 'dist/@aviorstudio_gd-audio.zip'
+          --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA"
+          --title "$TAG" --notes "Release $TAG"
+      - name: Install checksummed GDAM CLI
+        uses: aviorstudio/gdam-actions/install@d735444eb470194585def44521d5d91df2260e63 # v0.0.2
         with:
-          version: ${{ steps.release.outputs.version }}
-          tag: ${{ steps.release.outputs.tag }}
+          version: v0.0.8
+      - name: Publish exact GitHub asset to GDAM
+        uses: aviorstudio/gdam-actions/publish@d735444eb470194585def44521d5d91df2260e63 # v0.0.2
+        with:
+          tag: ${{ needs.test-package.outputs.tag }}
+          asset: '@aviorstudio_gd-audio.zip'
           secret-key: ${{ secrets.GDAM_SECRET_KEY }}
