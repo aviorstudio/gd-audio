@@ -105,6 +105,13 @@ def write_project(project: Path, consumer_owned: bool = False) -> None:
 
 
 def write_scripts(project: Path) -> None:
+    project.joinpath("fixture_audio.tres").write_text(textwrap.dedent("""
+        [gd_resource type="AudioStreamGenerator" format=3]
+
+        [resource]
+        mix_rate = 8000.0
+        buffer_length = 0.5
+    """).strip() + "\n", encoding="utf-8")
     project.joinpath("runtime_smoke.gd").write_text(textwrap.dedent("""
         extends Node
 
@@ -114,12 +121,16 @@ def write_scripts(project: Path) -> None:
                 push_error("packaged GdAudio autoload was not installed")
                 get_tree().quit(1)
                 return
-            audio.configure_music({"settings_path": "", "stream_path": "", "autoplay": false})
+            var ready = audio.configure_music({"settings_path": "", "stream_path": "res://fixture_audio.tres", "autoplay": false})
+            if not ready:
+                push_error("packaged music fixture did not become ready")
+                get_tree().quit(1)
+                return
             if audio._player.playing:
                 push_error("autoplay=false started packaged music")
                 get_tree().quit(1)
                 return
-            print("ASSERTIONS gd-audio package_runtime_smoke 2")
+            print("ASSERTIONS gd-audio package_runtime_smoke 3")
             print("PASS gd-audio package_runtime_smoke")
             if OS.has_feature("web"):
                 var label = Label.new()
