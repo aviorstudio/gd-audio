@@ -36,13 +36,17 @@ jobs:
       # comment so the version is still readable. A tag is a moving reference:
       # whoever can move it can run code in this job.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # pull_request's github.sha is a synthetic merge commit. The issue
+          # contract requires evidence for the immutable PR head itself.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Test
         uses: ./.github/actions/test
       - name: Retain exact package evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: gd-audio-package-${{ github.sha }}
+          name: gd-audio-package-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             dist/@aviorstudio_gd-audio.zip
             dist/package.sha256
