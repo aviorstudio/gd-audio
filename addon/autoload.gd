@@ -2,6 +2,9 @@ extends Node
 
 signal music_volume_changed(volume_percent: float)
 signal sfx_volume_changed(volume_percent: float)
+signal music_ready
+signal music_load_failed(stream_path: String)
+signal music_stopped
 
 const DEFAULT_MUSIC_CONFIG := {
 	"stream_path": "",
@@ -31,6 +34,9 @@ const MIN_VOLUME_DB: float = -80.0
 var _player: AudioStreamPlayer = null
 var _fade_tween: Tween = null
 var _is_fading_out: bool = false
+var _fade_purpose: StringName = &""
+var _transition_generation: int = 0
+var _music_active: bool = false
 var _music_config: Dictionary = DEFAULT_MUSIC_CONFIG.duplicate(true)
 var _music_volume_percent: float = float(DEFAULT_MUSIC_CONFIG.default_volume_percent)
 var _configured: bool = false
@@ -52,7 +58,11 @@ func _ready() -> void:
 	add_child(_player)
 	set_process(false)
 
-func configure_music(config: Dictionary) -> void:
+func configure_music(config: Dictionary) -> bool:
+	_cancel_music_transition()
+	_music_active = false
+	if _player != null:
+		_player.stop()
 	_music_config = DEFAULT_MUSIC_CONFIG.duplicate(true)
 	for key in config.keys():
 		_music_config[key] = config[key]
@@ -63,10 +73,18 @@ func configure_music(config: Dictionary) -> void:
 	_configure_current_track_stream()
 	_apply_bus()
 	_apply_volume(true)
+	if _tracks.is_empty():
+		_refresh_music_process_state()
+		return false
+	music_ready.emit()
 	if bool(_music_config.get("autoplay", true)):
-		_restart_music()
+		return start_music()
 	else:
 		_refresh_music_process_state()
+	return true
+
+func start_music() -> bool:
+	return _restart_music()
 
 func get_music_volume_percent() -> float:
 	return _music_volume_percent
@@ -80,13 +98,34 @@ func set_music_volume_percent(value: float) -> void:
 	_apply_volume()
 	music_volume_changed.emit(_music_volume_percent)
 
-func stop_music() -> void:
-	if _fade_tween != null:
-		_fade_tween.kill()
-		_fade_tween = null
-	_is_fading_out = false
-	if _player:
+func stop_music(fade: bool = false) -> void:
+	if _player == null:
+		return
+	if _is_fading_out and _fade_purpose == &"stop":
+		if fade:
+			return
+		_cancel_music_transition()
 		_player.stop()
+		_music_active = false
+		music_stopped.emit()
+		_refresh_music_process_state()
+		return
+	if not _player.playing:
+		if _music_active:
+			_cancel_music_transition()
+			_music_active = false
+			music_stopped.emit()
+			_refresh_music_process_state()
+		return
+	if fade:
+		var fade_out_duration: float = maxf(float(_music_config.get("fade_out_duration_seconds", 0.0)), 0.0)
+		if fade_out_duration > 0.0:
+			_begin_fade_out(fade_out_duration, &"stop")
+			return
+	_cancel_music_transition()
+	_player.stop()
+	_music_active = false
+	music_stopped.emit()
 	_refresh_music_process_state()
 
 func _process(_delta: float) -> void:
@@ -132,9 +171,14 @@ func _normalize_track_entry(entry: Variant) -> Dictionary:
 	var stream_path: String = str(entry_dict.get("stream_path", "")).strip_edges()
 	if stream_path.is_empty():
 		return {}
+	if not ResourceLoader.exists(stream_path, "AudioStream"):
+		push_warning("Failed to load music stream: %s" % stream_path)
+		music_load_failed.emit(stream_path)
+		return {}
 	var stream: AudioStream = load(stream_path) as AudioStream
 	if stream == null:
 		push_warning("Failed to load music stream: %s" % stream_path)
+		music_load_failed.emit(stream_path)
 		return {}
 	var start_offset: float = maxf(float(entry_dict.get("start_offset_seconds", 0.0)), 0.0)
 	return {
@@ -173,9 +217,7 @@ func _apply_volume(immediate_silence: bool = false) -> void:
 	if _player == null:
 		return
 	if _fade_tween != null:
-		_fade_tween.kill()
-		_fade_tween = null
-	_is_fading_out = false
+		_cancel_music_transition()
 	if immediate_silence:
 		_player.volume_db = MIN_VOLUME_DB
 		return
@@ -186,18 +228,17 @@ func _resolve_target_volume_db() -> float:
 		return MIN_VOLUME_DB
 	return linear_to_db(_music_volume_percent / 100.0)
 
-func _restart_music() -> void:
+func _restart_music() -> bool:
 	if _player == null or _player.stream == null:
-		return
-	if _fade_tween != null:
-		_fade_tween.kill()
-		_fade_tween = null
-	_is_fading_out = false
+		return false
+	_cancel_music_transition()
 	_player.stop()
 	var start_offset: float = _get_current_track_start_offset()
 	_player.play(start_offset)
+	_music_active = true
 	_fade_in_to_target_volume()
 	_refresh_music_process_state()
+	return true
 
 func _fade_in_to_target_volume() -> void:
 	if _player == null:
@@ -220,18 +261,41 @@ func _fade_out_and_advance() -> void:
 	if fade_out_duration <= 0.0:
 		_advance_and_play()
 		return
+	_begin_fade_out(fade_out_duration, &"advance")
+
+func _begin_fade_out(duration: float, purpose: StringName) -> void:
+	_cancel_music_transition()
 	_is_fading_out = true
+	_fade_purpose = purpose
+	var generation := _transition_generation
 	_refresh_music_process_state()
-	if _fade_tween != null:
-		_fade_tween.kill()
-		_fade_tween = null
 	_fade_tween = create_tween()
 	_fade_tween.set_trans(Tween.TRANS_SINE)
 	_fade_tween.set_ease(Tween.EASE_IN)
-	_fade_tween.tween_property(_player, "volume_db", MIN_VOLUME_DB, fade_out_duration)
+	_fade_tween.tween_property(_player, "volume_db", MIN_VOLUME_DB, duration)
 	_fade_tween.finished.connect(func() -> void:
-		_advance_and_play()
+		if generation != _transition_generation:
+			return
+		_fade_tween = null
+		_is_fading_out = false
+		_fade_purpose = &""
+		if purpose == &"stop":
+			if _player != null and _player.playing:
+				_player.stop()
+			_music_active = false
+			music_stopped.emit()
+			_refresh_music_process_state()
+		else:
+			_advance_and_play()
 	)
+
+func _cancel_music_transition() -> void:
+	_transition_generation += 1
+	if _fade_tween != null:
+		_fade_tween.kill()
+		_fade_tween = null
+	_is_fading_out = false
+	_fade_purpose = &""
 
 func _advance_and_play() -> void:
 	if _tracks.is_empty():
@@ -243,10 +307,19 @@ func _advance_and_play() -> void:
 func _on_player_finished() -> void:
 	if not _configured or _is_fading_out:
 		return
-	if bool(_music_config.get("autoplay", true)):
+	if _music_active:
 		_advance_and_play()
 	else:
 		_refresh_music_process_state()
+
+func _exit_tree() -> void:
+	_cancel_music_transition()
+	_music_active = false
+	if _player != null:
+		_player.stop()
+	for sfx_player in _sfx_players:
+		if sfx_player != null and is_instance_valid(sfx_player):
+			sfx_player.stop()
 
 func _load_settings() -> void:
 	var settings_path: String = str(_music_config.get("settings_path", "")).strip_edges()

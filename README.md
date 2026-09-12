@@ -20,7 +20,7 @@ The plugin installs an autoload named `GdAudio`.
 
 ```gdscript
 func _ready() -> void:
-	GdAudio.configure_music({
+	var ready := GdAudio.configure_music({
 		"stream_path": "res://assets/music/theme.mp3",
 		"settings_path": "user://audio_settings.cfg",
 		"settings_section": "music",
@@ -32,6 +32,10 @@ func _ready() -> void:
 		"bus": "Master",
 	})
 ```
+
+`configure_music` loads synchronously and returns whether at least one track is ready. It emits `music_load_failed(stream_path)` for each configured path that fails and emits `music_ready` once after a successful configuration. Set `autoplay` to `false` when startup must be explicit, then call `GdAudio.start_music()`. Calling `start_music()` while playing restarts the current track from its configured offset.
+
+`GdAudio.stop_music()` remains an instant stop. Call `GdAudio.stop_music(true)` to use `fade_out_duration_seconds`; repeated stop calls share one completion and `music_stopped` emits exactly once. Starting or reconfiguring during a pending stop cancels its stale completion.
 
 ## Sound Effects
 
@@ -59,12 +63,13 @@ GdAudio.play_sfx("click")
 
 ## What You Get
 
-- `configure_music`: load and optionally autoplay looping music.
+- `configure_music`: synchronously load music, report readiness/failures, and optionally autoplay.
+- `start_music`: explicitly start or restart the current ready track.
 - `set_music_volume_percent` / `get_music_volume_percent`: manage persisted music volume.
-- `stop_music`: fade out and stop the active music stream.
+- `stop_music`: stop instantly by default or honor the configured fade when passed `true`.
 - `configure_sfx`: register one-shot samples and configure a player pool.
 - `play_sfx`: play a named sound effect.
-- `music_volume_changed` and `sfx_volume_changed` signals.
+- `music_ready`, `music_load_failed`, `music_stopped`, `music_volume_changed`, and `sfx_volume_changed` signals.
 
 ## Notes
 
