@@ -68,7 +68,7 @@ GdAudio.play_sfx("click")
 
 ## Notes
 
-- Works in Godot 4.x native and web exports, subject to Godot audio format support.
+- Supported and release-tested on Godot 4.7.2 native Linux and web exports, subject to Godot audio format and browser autoplay support.
 - No project settings are required beyond enabling the plugin autoload.
 - Keep game-specific music selection and settings UI in your game code.
 
@@ -93,7 +93,7 @@ Run locally with:
 ./tests/test.sh
 ```
 
-CI runs the same test script when available.
+**Correction (fieldsofrevik#142):** The old statement that CI ran the test script "when available" could allow a missing suite to look successful and did not describe the release gate. CI and release now require the Godot 4.7.2 suite, strict negative runner controls, a closed-manifest ZIP, and an install/enable/restart/smoke/disable/restart check against the exact packaged bytes. The release uploads that tested ZIP without rebuilding it.
 
 ## License
 

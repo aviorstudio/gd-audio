@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GdAudioAutoload = preload("res://addon/autoload.gd")
+var _assertion_count := 0
 
 func _init() -> void:
 	var audio := GdAudioAutoload.new()
@@ -25,10 +26,12 @@ func _init() -> void:
 	audio.set_sfx_volume_percent(-5.0)
 	_assert(is_equal_approx(audio.get_sfx_volume_percent(), 0.0), "sfx volume should clamp low")
 	audio.queue_free()
+	print("ASSERTIONS gd-audio audio_autoload_test %d" % _assertion_count)
 	print("PASS gd-audio audio_autoload_test")
 	quit()
 
 func _assert(condition: bool, message: String) -> void:
+	_assertion_count += 1
 	if not condition:
 		push_error(message)
 		quit(1)

@@ -26,14 +26,14 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        test -f addon/plugin.cfg
+        python3 tools/package_test.py
 
     # Godot comes from a LOCAL action, copied from the one castledrop and prizm
     # carry. The version used to be a download URL written into ci.yml -- the
     # engine this addon is tested against lived in workflow YAML.
     - uses: ./.github/actions/setup-godot
       with:
-        godot-version: '4.4.1'
+        install-templates: 'true'
 
     # No `if: hashFiles(...)` guard. This step used to skip itself when
     # tests/test.sh was absent, which is indistinguishable from the script being
@@ -41,4 +41,17 @@ runs:
     # suite, so the step runs unconditionally and a missing script now fails.
     - name: Godot tests
       shell: bash
-      run: ./tests/test.sh
+      run: |
+        set -euo pipefail
+        ./tests/test.sh --self-test
+        ./tests/test.sh
+
+    - name: Build and install exact package bytes
+      shell: bash
+      run: |
+        set -euo pipefail
+        rm -rf dist
+        mkdir -p dist
+        python3 tools/package.py build 'dist/@aviorstudio_gd-audio.zip' | tee dist/package-evidence.txt
+        (cd dist && sha256sum '@aviorstudio_gd-audio.zip' > package.sha256)
+        python3 tools/package_smoke.py 'dist/@aviorstudio_gd-audio.zip' --web-output dist/web-smoke

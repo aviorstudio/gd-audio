@@ -39,3 +39,13 @@ jobs:
 
       - name: Test
         uses: ./.github/actions/test
+      - name: Retain exact package evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gd-audio-package-${{ github.sha }}
+          path: |
+            dist/@aviorstudio_gd-audio.zip
+            dist/package.sha256
+            dist/package-evidence.txt
+            dist/web-smoke/
+          if-no-files-found: error
