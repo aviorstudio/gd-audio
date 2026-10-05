@@ -1,3 +1,5 @@
+<!-- Generated from private documentation source. Do not edit directly. Source SHA256: c44494db33ab48003477f95434ca8e186b19f60eba1d6ec633a153fab6733b4e -->
+
 # gd-audio
 
 Add looping music, saved volume settings, fades, and pooled sound effects to Godot 4 games.
@@ -77,29 +79,7 @@ GdAudio.play_sfx("click")
 - No project settings are required beyond enabling the plugin autoload.
 - Keep game-specific music selection and settings UI in your game code.
 
-## Repository Layout
-
-- `addon/`: Godot plugin source packaged for GDAM and manual installation.
-- `addon/plugin.cfg`: plugin name, version, description, and entry script.
-- `addon/src/`: reusable GDScript modules.
-- `tests/`: Godot test project/scripts for addon behavior.
-- `.github/workflows/ci.yml`: validates package shape and runs tests.
-- `.github/workflows/release.yml`: creates GitHub release ZIPs and publishes to GDAM.
-
-## Versioning And Releases
-
-The version in `addon/plugin.cfg` is the addon package version. Releases are created from `main` with the manual release workflow and plain semver tags like `v0.0.1`; the workflow verifies `plugin.cfg`, builds `@aviorstudio_gd-audio.zip`, and publishes `@aviorstudio/gd-audio` to GDAM.
-
-## Testing
-
-Run locally with:
-
-```sh
-./tests/test.sh
-```
-
-**Correction (fieldsofrevik#142):** The old statement that CI ran the test script "when available" could allow a missing suite to look successful and did not describe the release gate. CI and release now require the Godot 4.7.2 suite, strict negative runner controls, a closed-manifest ZIP, and an install/enable/restart/smoke/disable/restart check against the exact packaged bytes. The release uploads that tested ZIP without rebuilding it.
 
 ## License
 
-MIT
+See `LICENSE`.
