@@ -13,7 +13,7 @@ concurrency: release-${{ github.repository }}
 
 jobs:
   test-package:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 20
     permissions:
       contents: read
@@ -74,7 +74,7 @@ jobs:
 
   publish:
     needs: test-package
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     permissions:
       contents: write
