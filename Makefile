@@ -16,9 +16,10 @@ test:
 	GODOT_BIN="$(GODOT_BIN)" bash tests/test.sh --self-test
 	GODOT_BIN="$(GODOT_BIN)" bash tests/test.sh
 build:
+	mkdir -p dist
 	python3 tools/package.py build dist/@aviorstudio_gd-audio.zip | tee dist/package-evidence.txt
 	sha256sum dist/@aviorstudio_gd-audio.zip > dist/package.sha256
-artifact-smoke:
+artifact-smoke: build
 	python3 tools/package_smoke.py dist/@aviorstudio_gd-audio.zip --godot "$(GODOT_BIN)" --web-output dist/web-smoke
 check: test build artifact-smoke
 clean:
