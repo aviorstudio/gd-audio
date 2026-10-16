@@ -3,7 +3,7 @@ description: Verify package controls, test-runner controls, addon behavior and s
 runs:
   using: composite
   steps:
-    - name: Setup Godot with reviewed export templates
+    - name: "Set up Godot"
       uses: ./.github/actions/setup-godot
       with:
         install-templates: 'true'
