@@ -13,6 +13,7 @@ concurrency: release-${{ github.repository }}
 
 jobs:
   test-package:
+    name: "Test package"
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 20
     permissions:
@@ -21,7 +22,8 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       tag: ${{ steps.release.outputs.tag }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: "Check out source"
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Determine release version
@@ -60,9 +62,9 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - name: Test exact release commit and assemble once
+      - name: "Test"
         uses: ./.github/actions/test
-      - name: Retain immutable publication input
+      - name: "Upload artifacts"
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: gd-audio-release-${{ github.sha }}
@@ -73,13 +75,14 @@ jobs:
           if-no-files-found: error
 
   publish:
+    name: "Publish release"
     needs: test-package
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - name: Download tested package bytes
+      - name: "Download artifacts"
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: gd-audio-release-${{ github.sha }}
@@ -97,7 +100,7 @@ jobs:
           gh release create "$TAG" 'dist/@aviorstudio_gd-audio.zip'
           --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA"
           --title "$TAG" --notes "Release $TAG"
-      - name: Publish exact GitHub asset to GDAM
+      - name: "Publish addon"
         uses: aviorstudio/gdam-actions/publish@6677226d9353df1d410f3e7f5075e13b3b7d5308 # v0.5.1
         with:
           tag: ${{ needs.test-package.outputs.tag }}
