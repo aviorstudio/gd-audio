@@ -1,4 +1,4 @@
-name: Setup Godot
+name: "Set up Godot"
 description: Install caller-reviewed Godot through the immutable shared installer
 inputs:
   install-templates:
@@ -7,7 +7,8 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: nicodes/tools/godot-setup@870195fe5f94d9b78a03d74ba5b54347cc670798 # reviewed immutable setup
+    - name: "Set up Godot"
+      uses: nicodes/tools/godot-setup@870195fe5f94d9b78a03d74ba5b54347cc670798 # reviewed immutable setup
       with:
         version: "4.7.2"
         binary-checksum: sha512:9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
