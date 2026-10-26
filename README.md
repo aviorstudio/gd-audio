@@ -1,4 +1,4 @@
-<!-- Generated from private documentation source. Do not edit directly. Source SHA256: 34f1cceb9d91b8c206cddf16895fe2d75047fd687e1fbb304e5a6a1e68a928c2 -->
+<!-- Generated from private documentation source. Do not edit directly. Source SHA256: d446317148076d076ed770912c99195656e89016685b22b24aa9704425901f21 -->
 
 # gd-audio
 
@@ -86,7 +86,7 @@ See `LICENSE`.
 
 ## Repository development
 
-Install the [Komizo release](https://github.com/nicodes/komizo#install) matching `komizo.lock`.
+Install the [komizo release](https://github.com/nicodes/komizo#install) matching `komizo.lock`.
 
 ```sh
 komizo check                 # Source, runtime, package and installed-addon checks
