@@ -1,4 +1,4 @@
-<!-- Generated from private documentation source. Do not edit directly. Source SHA256: c44494db33ab48003477f95434ca8e186b19f60eba1d6ec633a153fab6733b4e -->
+<!-- Generated from private documentation source. Do not edit directly. Source SHA256: 34f1cceb9d91b8c206cddf16895fe2d75047fd687e1fbb304e5a6a1e68a928c2 -->
 
 # gd-audio
 
@@ -83,3 +83,15 @@ GdAudio.play_sfx("click")
 ## License
 
 See `LICENSE`.
+
+## Repository development
+
+Install the [Komizo release](https://github.com/nicodes/komizo#install) matching `komizo.lock`.
+
+```sh
+komizo check                 # Source, runtime, package and installed-addon checks
+komizo run test              # Focused addon test suite
+komizo run artifact-check    # Verify the built package
+```
+
+The addon recipe supplies the verified Godot engine and templates in checkout-owned tool/data directories. Interactive use belongs to a consuming Godot project.
