@@ -1,4 +1,4 @@
-<!-- Generated from private documentation source. Do not edit directly. Source SHA256: c44494db33ab48003477f95434ca8e186b19f60eba1d6ec633a153fab6733b4e -->
+<!-- Generated from private documentation source. Do not edit directly. Source SHA256: 76d032bbb3a3efb294f82141c9f62857e4237d44fc5c636cf93dc7a07d861025 -->
 
 # gd-audio
 
@@ -83,3 +83,16 @@ GdAudio.play_sfx("click")
 ## License
 
 See `LICENSE`.
+
+## Contributor checks
+
+Install [mise](https://mise.jdx.dev/), then prepare the pinned development helpers and run the complete native gate:
+
+```sh
+git clone https://github.com/nicodes/tools.git .ci-tools
+git -C .ci-tools checkout --detach f7e243524ce2aa29f299e4c79db33001f72f4a30
+mise install
+mise run check
+```
+
+`mise.toml` owns tool versions and tasks. Engine and template downloads are checksum verified. `mise run build` packages the addon; `mise run test` runs its declared tests. The complete check also validates the installed artifact. Build and test receipts stay in `.artifacts/verification`.
