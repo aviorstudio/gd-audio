@@ -12,7 +12,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / "tools" / "package_manifest.txt"
+MANIFEST = ROOT / "scripts/package_manifest.txt"
 
 
 def expected_files() -> list[str]:
