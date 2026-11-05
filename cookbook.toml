@@ -1,0 +1,58 @@
+version = 1
+recipe = "godot-addon"
+
+[package]
+source = "addon"
+manifest = "package-manifest.txt"
+archive = "dist/@aviorstudio_gd-audio.zip"
+
+[[components.fixture_exports]]
+project = "tests/package/web"
+preset = "Web"
+output = "dist/web-smoke/index.html"
+timeout = 120
+import_timeout = 45
+required_outputs = ["index.html", "index.js", "index.wasm", "index.pck"]
+install_archive = "addons/@aviorstudio_gd-audio"
+
+[lint]
+required_paths = ["addon/plugin.cfg", "addon/plugin.gd", "addon/autoload.gd", "package-manifest.txt"]
+
+[format]
+paths = ["addon", "tests/audio_autoload_test.gd", "tests/music_lifecycle_test.gd", "tests/package/web"]
+
+[clean]
+paths = ["dist", ".artifacts/build", ".artifacts/godot", ".artifacts/godot-data", ".artifacts/godot-config", ".artifacts/tmp", ".artifacts/verification", ".godot"]
+
+[publication]
+mode = "bump"
+validation_timeout = 20
+publish_timeout = 10
+tag_prefix = "v"
+initial = "first"
+
+[[tests.unit]]
+runner = "python"
+path = "tests/test_runner_controls.py"
+timeout = 120
+[[tests.unit]]
+runner = "python"
+path = "tests/package/test_archive_controls.py"
+timeout = 30
+[[tests.unit]]
+runner = "godot"
+path = "tests/audio_autoload_test.gd"
+timeout = 30
+sentinel = "PASS gd-audio audio_autoload_test"
+policy = { assertions_regex = "^ASSERTIONS gd-audio audio_autoload_test ([1-9][0-9]*)$", audio_driver = "Dummy" }
+[[tests.unit]]
+runner = "godot"
+path = "tests/music_lifecycle_test.gd"
+timeout = 30
+sentinel = "PASS gd-audio music_lifecycle_test"
+policy = { assertions_regex = "^ASSERTIONS gd-audio music_lifecycle_test ([1-9][0-9]*)$", audio_driver = "Dummy" }
+[[tests.integration]]
+runner = "python"
+path = "tests/package/lifecycle.py"
+args = ["dist/@aviorstudio_gd-audio.zip", "--godot", ".artifacts/godot/bin/godot", "--web-output", "dist/web-smoke"]
+timeout = 600

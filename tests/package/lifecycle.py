@@ -13,13 +13,17 @@ import subprocess
 import tempfile
 import textwrap
 import time
+import os
 import zipfile
 
-HERE = Path(__file__).resolve().parent
-SPEC = importlib.util.spec_from_file_location("gd_audio_package", HERE / "package.py")
-assert SPEC and SPEC.loader
+ROOT = Path(__file__).resolve().parents[2]
+TOOLS = Path(os.environ["TOOLS_ROOT"])
+SPEC = importlib.util.spec_from_file_location("shared_addon_package", TOOLS / "helpers/addon-package.py")
 package = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(package)
+MANIFEST = ROOT / "package-manifest.txt"
+FIXTURE = Path(__file__).resolve().parent / "web"
+
 ADDON_DIR = "@aviorstudio_gd-audio"
 PLUGIN = f"res://addons/{ADDON_DIR}/plugin.cfg"
 
@@ -105,166 +109,18 @@ def write_project(project: Path, consumer_owned: bool = False) -> None:
 
 
 def write_scripts(project: Path) -> None:
-    project.joinpath("fixture_audio.tres").write_text(textwrap.dedent("""
-        [gd_resource type="AudioStreamGenerator" format=3]
-
-        [resource]
-        mix_rate = 8000.0
-        buffer_length = 0.5
-    """).strip() + "\n", encoding="utf-8")
-    project.joinpath("runtime_smoke.gd").write_text(textwrap.dedent("""
-        extends Node
-
-        func _ready() -> void:
-            var audio = get_node_or_null("/root/GdAudio")
-            if audio == null:
-                push_error("packaged GdAudio autoload was not installed")
-                get_tree().quit(1)
-                return
-            var ready = audio.configure_music({"settings_path": "", "stream_path": "res://fixture_audio.tres", "autoplay": false})
-            if not ready:
-                push_error("packaged music fixture did not become ready")
-                get_tree().quit(1)
-                return
-            if audio._player.playing:
-                push_error("autoplay=false started packaged music")
-                get_tree().quit(1)
-                return
-            print("ASSERTIONS gd-audio package_runtime_smoke 3")
-            print("PASS gd-audio package_runtime_smoke")
-            if OS.has_feature("web"):
-                var label = Label.new()
-                label.text = "PASS gd-audio packaged web smoke\\nautoplay=false remained stopped"
-                label.position = Vector2(24, 24)
-                label.add_theme_font_size_override("font_size", 24)
-                add_child(label)
-                return
-            get_tree().quit()
-    """).strip() + "\n", encoding="utf-8")
-    project.joinpath("runtime_smoke.tscn").write_text(textwrap.dedent("""
-        [gd_scene load_steps=2 format=3]
-
-        [ext_resource path="res://runtime_smoke.gd" type="Script" id="1"]
-
-        [node name="RuntimeSmoke" type="Node"]
-        script = ExtResource("1")
-    """).strip() + "\n", encoding="utf-8")
-    project.joinpath("consumer_runtime_smoke.gd").write_text(textwrap.dedent("""
-        extends Node
-
-        func _ready() -> void:
-            var consumer = get_node_or_null("/root/GdAudio")
-            if consumer == null or consumer.get_script() == null or consumer.get_script().resource_path != "res://consumer.gd":
-                push_error("consumer-owned GdAudio autoload was replaced or removed")
-                get_tree().quit(1)
-                return
-            print("ASSERTIONS gd-audio consumer_autoload_smoke 1")
-            print("PASS gd-audio consumer_autoload_smoke")
-            get_tree().quit()
-    """).strip() + "\n", encoding="utf-8")
-    project.joinpath("consumer_runtime_smoke.tscn").write_text(textwrap.dedent("""
-        [gd_scene load_steps=2 format=3]
-
-        [ext_resource path="res://consumer_runtime_smoke.gd" type="Script" id="1"]
-
-        [node name="ConsumerRuntimeSmoke" type="Node"]
-        script = ExtResource("1")
-    """).strip() + "\n", encoding="utf-8")
-    project.joinpath("disable_smoke.gd").write_text(textwrap.dedent(f"""
-        @tool
-        extends SceneTree
-
-        func _init() -> void:
-            _disable_when_ready.call_deferred()
-
-        func _disable_when_ready() -> void:
-            var plugin: Node = null
-            for _frame in range(600):
-                plugin = _find_plugin(root)
-                if plugin != null:
-                    break
-                await process_frame
-            if plugin == null:
-                push_error("enabled gd-audio editor plugin instance was not found")
-                quit(1)
-                return
-            for _frame in range(180):
-                await process_frame
-            plugin._disable_plugin()
-            ProjectSettings.set_setting("editor_plugins/enabled", PackedStringArray())
-            ProjectSettings.save()
-            print("ASSERTIONS gd-audio package_disable_smoke 1")
-            print("PASS gd-audio package_disable_smoke")
-            for _frame in range(30):
-                await process_frame
-            quit()
-
-        func _find_plugin(node: Node) -> Node:
-            var script = node.get_script()
-            if script != null and str(script.resource_path) == "res://addons/{ADDON_DIR}/plugin.gd":
-                return node
-            for child in node.get_children():
-                var found = _find_plugin(child)
-                if found != null:
-                    return found
-            return null
-    """).strip() + "\n", encoding="utf-8")
-    project.joinpath("noop_editor_smoke.gd").write_text(textwrap.dedent("""
-        @tool
-        extends SceneTree
-
-        var _held_plugin_script: Script
-
-        func _init() -> void:
-            _finish.call_deferred()
-
-        func _finish() -> void:
-            for _frame in range(300):
-                await process_frame
-            _held_plugin_script = load("res://addons/@aviorstudio_gd-audio/plugin.gd")
-            print("PASS gd-audio godot_472_editor_script_control")
-            quit()
-    """).strip() + "\n", encoding="utf-8")
-    project.joinpath("export_presets.cfg").write_text(textwrap.dedent("""
-        [preset.0]
-
-        name="Web"
-        platform="Web"
-        runnable=true
-        advanced_options=false
-        dedicated_server=false
-        custom_features=""
-        export_filter="all_resources"
-        include_filter=""
-        exclude_filter=""
-        export_path="build/web/index.html"
-        patches=PackedStringArray()
-        encryption_include_filters=""
-        encryption_exclude_filters=""
-        seed=0
-        encrypt_pck=false
-        encrypt_directory=false
-        script_export_mode=2
-
-        [preset.0.options]
-
-        variant/extensions_support=false
-        variant/thread_support=false
-        vram_texture_compression/for_desktop=true
-        vram_texture_compression/for_mobile=false
-        html/canvas_resize_policy=2
-        html/focus_canvas_on_start=true
-        progressive_web_app/enabled=false
-    """).strip() + "\n", encoding="utf-8")
+    for path in FIXTURE.iterdir():
+        if path.is_file() and path.name != "project.godot":
+            shutil.copyfile(path, project / path.name)
 
 
 def install(archive: Path, project: Path) -> Path:
-    package.validate(archive)
+    package.verify(archive, MANIFEST, source=ROOT / "addon")
     addon = project / "addons" / ADDON_DIR
     addon.mkdir(parents=True)
     with zipfile.ZipFile(archive) as source:
         source.extractall(addon)
-    package_files = set(package.expected_files())
+    package_files = set(package.manifest_files(MANIFEST))
     installed = {path.relative_to(addon).as_posix() for path in addon.rglob("*") if path.is_file()}
     if installed != package_files:
         raise RuntimeError(f"installed tree mismatch: {sorted(installed)}")
@@ -284,7 +140,7 @@ def main() -> None:
     parser.add_argument("--web-output", type=Path)
     args = parser.parse_args()
     archive = args.archive.resolve()
-    package.validate(archive)
+    package.verify(archive, MANIFEST, source=ROOT / "addon")
     with tempfile.TemporaryDirectory(prefix="gd-audio-installed-") as temporary:
         project = Path(temporary)
         write_project(project)
@@ -296,16 +152,10 @@ def main() -> None:
         assert_setting(project, "plugin_owns_autoload=true", True)
         start_editor_and_interrupt(editor, project)
         run([args.godot, "--headless", "--audio-driver", "Dummy", "--path", str(project)])
-        web_build = project / "build" / "web"
-        web_build.mkdir(parents=True)
-        run([args.godot, "--headless", "--audio-driver", "Dummy", "--path", str(project), "--export-release", "Web", str(web_build / "index.html")], timeout=120)
+        web_build = (args.web_output or ROOT / "dist/web-smoke").resolve()
         for required in ("index.html", "index.js", "index.wasm", "index.pck"):
             if not web_build.joinpath(required).is_file():
-                raise RuntimeError(f"web export omitted {required}")
-        if args.web_output:
-            output = args.web_output.resolve()
-            shutil.rmtree(output, ignore_errors=True)
-            shutil.copytree(web_build, output)
+                raise RuntimeError(f"existing Web fixture omitted {required}; run make build")
         print("PASS gd-audio package_web_export_smoke")
         control_output, control_errors = run(editor + ["--script", "res://noop_editor_smoke.gd"], godot_472_control=True)
         if "PASS gd-audio godot_472_editor_script_control" not in control_output or not control_errors:
@@ -315,6 +165,7 @@ def main() -> None:
         assert_setting(project, "GdAudio=", False)
         assert_setting(project, "plugin_owns_autoload", False)
         run(editor + ["--quit-after", "120"])
+        package.verify(archive, MANIFEST, source=ROOT / "addon", installed=addon)
         print(f"INSTALLED_TREE_SHA256={tree_digest(addon)}")
 
     with tempfile.TemporaryDirectory(prefix="gd-audio-consumer-owned-") as temporary:
