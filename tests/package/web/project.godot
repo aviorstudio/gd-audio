@@ -1,0 +1,15 @@
+; generated package smoke fixture
+config_version=5
+
+[application]
+config/name="gd-audio package smoke"
+run/main_scene="res://runtime_smoke.tscn"
+
+[editor_plugins]
+enabled=PackedStringArray("res://addons/@aviorstudio_gd-audio/plugin.cfg")
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+
+[autoload]
+GdAudio="*res://addons/@aviorstudio_gd-audio/autoload.gd"
