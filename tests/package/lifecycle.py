@@ -21,7 +21,7 @@ TOOLS = Path(os.environ["TOOLS_ROOT"])
 SPEC = importlib.util.spec_from_file_location("shared_addon_package", TOOLS / "helpers/addon-package.py")
 package = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(package)
-MANIFEST = ROOT / "package-manifest.txt"
+MANIFEST = ROOT / "package.files"
 FIXTURE = Path(__file__).resolve().parent / "web"
 
 ADDON_DIR = "@aviorstudio_gd-audio"
