@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("shared_addon_package", Path(os.environ["TOOLS_ROOT"]) / "helpers/addon-package.py")
 package = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(package)
-MANIFEST = ROOT / "package-manifest.txt"
+MANIFEST = ROOT / "package.files"
 
 
 def rejected(name: str, members: list[tuple[zipfile.ZipInfo | str, bytes]]) -> None:
