@@ -56,6 +56,3 @@ runner = "python"
 path = "tests/package/lifecycle.py"
 args = ["dist/@aviorstudio_gd-audio.zip", "--godot", ".artifacts/godot/bin/godot", "--web-output", "dist/web-smoke"]
 timeout = 600
-
-[ci]
-timeout_minutes = 30
