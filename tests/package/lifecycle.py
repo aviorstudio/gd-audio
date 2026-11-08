@@ -155,7 +155,7 @@ def main() -> None:
         web_build = (args.web_output or ROOT / "dist/web-smoke").resolve()
         for required in ("index.html", "index.js", "index.wasm", "index.pck"):
             if not web_build.joinpath(required).is_file():
-                raise RuntimeError(f"existing Web fixture omitted {required}; run make build")
+                raise RuntimeError(f"existing Web fixture omitted {required}; run mise run build")
         print("PASS gd-audio package_web_export_smoke")
         control_output, control_errors = run(editor + ["--script", "res://noop_editor_smoke.gd"], godot_472_control=True)
         if "PASS gd-audio godot_472_editor_script_control" not in control_output or not control_errors:
